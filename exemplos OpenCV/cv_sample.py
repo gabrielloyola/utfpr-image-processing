@@ -4,7 +4,7 @@ import timeit
 import cv2
 import numpy as np
 
-IN_IMG = 'teste.jpg'
+IN_IMG = 'teste.JPG'
 
 # Abrindo a imagem. A imagem é armazenada em um array numpy.
 # A função imread carrega uma imagem de um arquivo. Ela tem um segundo
