@@ -16,7 +16,7 @@ INPUT_IMAGE =  'arroz.bmp'
 
 # TODO: ajuste estes parâmetros!
 NEGATIVO = False
-THRESHOLD = 0.4
+THRESHOLD = 0.8
 ALTURA_MIN = 15
 LARGURA_MIN = 15
 N_PIXELS_MIN = 500
@@ -32,7 +32,9 @@ Parâmetros: img: imagem de entrada. Se tiver mais que 1 canal, binariza cada
             
 Valor de retorno: versão binarizada da img_in.'''
 
-    return np.where(img < threshold, 0, 1)
+    binary_img = np.where(img < threshold, 0, 1)
+    # CHECKME: verificar com o professor se podemos retornar com uint8 mesmo, pois so assim deu pra exibir com a imgshow 
+    return binary_img.astype(np.uint8)
 
 #-------------------------------------------------------------------------------
 
