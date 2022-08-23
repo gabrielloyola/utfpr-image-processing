@@ -5,20 +5,18 @@
 # Universidade Tecnológica Federal do Paraná
 #===============================================================================
 
-from multiprocessing.managers import BaseListProxy
 import sys
 import timeit
 import numpy as np
 import cv2
-from imprime import imprime
 
 #===============================================================================
 
 INPUT_IMAGE =  'arroz.bmp'
 
 # TODO: ajuste estes parâmetros!
-NEGATIVO = True
-THRESHOLD = 0.7
+NEGATIVO = False
+THRESHOLD = 0.8
 ALTURA_MIN = 15
 LARGURA_MIN = 15
 N_PIXELS_MIN = 500
@@ -40,14 +38,6 @@ Valor de retorno: versão binarizada da img_in.'''
 
 #-------------------------------------------------------------------------------
 
-img = [
-    [0, 0, 0, 1, 0],
-    [0, 1, 0, 1, 1],
-    [0, 1, 0, 0, 1],
-    [0, 0, 0, 1, 0],
-    [0, 0, 1, 1, 0],
-]
-
 def rotula(img, largura_min, altura_min, n_pixels_min):
     '''Rotulagem usando flood fill. Marca os objetos da imagem com os valores
 [0.1,0.2,etc].
@@ -67,79 +57,82 @@ respectivamente: topo, esquerda, baixo e direita.'''
 
     largura = len(img[0])
     altura = len(img)
-    rotulo = 2
+    rotulo = 0.1
+    componentes = dict()
+
+    # Altera branco para -1 para manipulacao
+    img = np.where(img == 1, -1, 0)
 
     for i in range(0, altura):
         for j in range(0, largura):
             if img[i][j] == 1:
-                inunda(rotulo, i, j)
-                rotulo = rotulo + 1
-
-    imprime(img, "INUNDADA")
+                inunda(img, rotulo, i, j, componentes)
+                rotulo += 0.1
 
 #===============================================================================
 
-def inunda(rotulo, y, x):
+def inunda(img, rotulo, y, x, componentes):
     largura = len(img[0])
     altura = len(img)
 
-    if img[y][x] != 1:
+    if img[y][x] != -1:
         return
 
     img[y][x] = rotulo
 
     # Vizinho de cima
     if y > 0:
-        inunda(rotulo, y - 1, x)
+        inunda(img, rotulo, y - 1, x, componentes)
     # Vizinho de baixo
     if y < altura - 1:
-        inunda(rotulo, y + 1, x)
+        inunda(img, rotulo, y + 1, x, componentes)
     # Vizinho da esquerda
     if x > 0:
-        inunda(rotulo, y, x - 1)
+        inunda(img, rotulo, y, x - 1, componentes)
     # Vizinho da direita
     if x < largura - 1:
-        inunda(rotulo, y, x + 1)
+        inunda(img, rotulo, y, x + 1, componentes)
 
 
 #===============================================================================
 
-def main():
+def main ():
     # Abre a imagem em escala de cinza.
-    img = cv2.imread(INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread (INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
     if img is None:
-        print('Erro abrindo a imagem.\n')
-        sys.exit()
+        print ('Erro abrindo a imagem.\n')
+        sys.exit ()
 
     # É uma boa prática manter o shape com 3 valores, independente da imagem ser
     # colorida ou não. Também já convertemos para float32.
-    img = img.reshape((img.shape[0], img.shape[1], 1))
-    img = img.astype(np.float32) / 255
+    img = img.reshape ((img.shape [0], img.shape [1], 1))
+    img = img.astype (np.float32) / 255
 
     # Mantém uma cópia colorida para desenhar a saída.
-    img_out = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    img_out = cv2.cvtColor (img, cv2.COLOR_GRAY2BGR)
 
     # Segmenta a imagem.
     if NEGATIVO:
         img = 1 - img
-    img = binariza(img, THRESHOLD)
-    cv2.imshow('01 - binarizada', img)
-    cv2.imwrite('01 - binarizada.png', img*255)
+    cv2.imshow ('00 - original', img)
+    img = binariza (img, THRESHOLD)
+    cv2.imshow ('01 - binarizada', img*255)
+    cv2.imwrite ('01 - binarizada.png', img*255)
 
-    start_time = timeit.default_timer()
-    componentes = rotula(img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
-    n_componentes = len(componentes)
-    print('Tempo: %f' %(timeit.default_timer() - start_time))
-    print('%d componentes detectados.' % n_componentes)
+    start_time = timeit.default_timer ()
+    componentes = rotula (img, LARGURA_MIN, ALTURA_MIN, N_PIXELS_MIN)
+    # n_componentes = len (componentes)
+    # print ('Tempo: %f' % (timeit.default_timer () - start_time))
+    # print ('%d componentes detectados.' % n_componentes)
 
-    # Mostra os objetos encontrados.
-    for c in componentes:
-        cv2.rectangle(img_out,(c['L'], c['T']),(c['R'], c['B']),(0,0,1))
+    # # Mostra os objetos encontrados.
+    # for c in componentes:
+    #     cv2.rectangle (img_out, (c ['L'], c ['T']), (c ['R'], c ['B']), (0,0,1))
 
-    cv2.imshow('02 - out', img_out)
-    cv2.imwrite('02 - out.png', img_out*255)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
+    # cv2.imshow ('02 - out', img_out)
+    # cv2.imwrite ('02 - out.png', img_out*255)
+    cv2.waitKey ()
+    cv2.destroyAllWindows ()
 
 
 if __name__ == '__main__':
