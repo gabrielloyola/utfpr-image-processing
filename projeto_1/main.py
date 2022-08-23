@@ -5,18 +5,20 @@
 # Universidade Tecnológica Federal do Paraná
 #===============================================================================
 
+from multiprocessing.managers import BaseListProxy
 import sys
 import timeit
 import numpy as np
 import cv2
+from imprime import imprime
 
 #===============================================================================
 
 INPUT_IMAGE =  'arroz.bmp'
 
 # TODO: ajuste estes parâmetros!
-NEGATIVO = False
-THRESHOLD = 0.8
+NEGATIVO = True
+THRESHOLD = 0.7
 ALTURA_MIN = 15
 LARGURA_MIN = 15
 N_PIXELS_MIN = 500
@@ -38,6 +40,14 @@ Valor de retorno: versão binarizada da img_in.'''
 
 #-------------------------------------------------------------------------------
 
+img = [
+    [0, 0, 0, 1, 0],
+    [0, 1, 0, 1, 1],
+    [0, 1, 0, 0, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 1, 1, 0],
+]
+
 def rotula(img, largura_min, altura_min, n_pixels_min):
     '''Rotulagem usando flood fill. Marca os objetos da imagem com os valores
 [0.1,0.2,etc].
@@ -55,13 +65,46 @@ com os seguintes campos:
 'T', 'L', 'B', 'R': coordenadas do retângulo envolvente de um componente conexo,
 respectivamente: topo, esquerda, baixo e direita.'''
 
-    # TODO: escreva esta função.
-    # Use a abordagem com flood fill recursivo.
+    largura = len(img[0])
+    altura = len(img)
+    rotulo = 2
+
+    for i in range(0, altura):
+        for j in range(0, largura):
+            if img[i][j] == 1:
+                inunda(rotulo, i, j)
+                rotulo = rotulo + 1
+
+    imprime(img, "INUNDADA")
+
+#===============================================================================
+
+def inunda(rotulo, y, x):
+    largura = len(img[0])
+    altura = len(img)
+
+    if img[y][x] != 1:
+        return
+
+    img[y][x] = rotulo
+
+    # Vizinho de cima
+    if y > 0:
+        inunda(rotulo, y - 1, x)
+    # Vizinho de baixo
+    if y < altura - 1:
+        inunda(rotulo, y + 1, x)
+    # Vizinho da esquerda
+    if x > 0:
+        inunda(rotulo, y, x - 1)
+    # Vizinho da direita
+    if x < largura - 1:
+        inunda(rotulo, y, x + 1)
+
 
 #===============================================================================
 
 def main():
-
     # Abre a imagem em escala de cinza.
     img = cv2.imread(INPUT_IMAGE, cv2.IMREAD_GRAYSCALE)
     if img is None:
