@@ -3,6 +3,8 @@
 #-------------------------------------------------------------------------------
 # Autor: Bogdan T. Nassu
 # Universidade Tecnológica Federal do Paraná
+# Alunos: Gabriel Leão Bernarde - 2194228
+#         Gabriel Loyola - 1558587
 #===============================================================================
 
 import sys
@@ -18,8 +20,8 @@ INPUT_IMAGE =  'arroz.bmp'
 NEGATIVO = False
 THRESHOLD = 0.6
 ALTURA_MIN = 18
-LARGURA_MIN = 19
-N_PIXELS_MIN = 445
+LARGURA_MIN = 17
+N_PIXELS_MIN = 443
 
 # Valores de pixel (nao alterar)
 ARROZ = -1
@@ -217,9 +219,9 @@ Valor de retorno: nenhum. Resultado impresso no terminal.'''
             min_pixels = c['n_pixels']
 
     print("\nCaso a imagem de saída tenha sido gerada como o esperado, para o threshold %.2f, os valores mínimos ideais seriam:" % THRESHOLD)
-    print("Largura:", min_largura)
-    print("Altura:", min_altura)
-    print("Pixels:", min_pixels)
+    print("Largura:", min_largura - 1)
+    print("Altura:", min_altura - 1)
+    print("Pixels:", min_pixels - 1)
 
 #===============================================================================
 
