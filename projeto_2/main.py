@@ -62,6 +62,22 @@ def calcula_media(janela, channel):
 
     return soma / (altura * largura)
 
+def imagem_integral(img):
+    largura = len(janela[0])
+    altura = len(janela)
+    
+    img_out = np.zeros(img.shape)
+    for c in range(0,3):
+        for y in range(0,altura):
+            img_out[y][0][c] =img[y][0][c]
+            for x in range(1,largura):
+                img_out[y][x][c] =img[y][x]+img_out[y][x-1][c]
+        for y in range(1,altura):
+            for x in range(0,largura):
+                img_out[y][x][c] = img_out[y][x][c] + img_out[y-1][x][c]
+
+    return img_out            
+
 def main():
     img = cv2.imread(INPUT_IMAGE)
     if img is None:
