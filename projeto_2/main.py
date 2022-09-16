@@ -11,64 +11,76 @@ import cv2
 
 #===============================================================================
 
-INPUT_IMAGE = 'a'
-LARGURA_JANELA = 3
-ALTURA_JANELA = 3
+INPUT_IMAGE = 'b'
+LARGURA_JANELA = 7
+ALTURA_JANELA = 7
+
+def calcula_media(janela):
+    altura, largura = janela.shape
+
+    soma = 0
+    for y in range(0, altura):
+        for x in range(0, largura):
+            soma += janela[y][x]
+
+    return soma / (largura * altura)
 
 def blur_basico(img, altura_janela, largura_janela):
     altura, largura, n_canais = img.shape
+
     img_out = np.zeros(img.shape)
 
-    for canal in range(0, n_canais):
-        for y in range(int(altura_janela / 2), altura - int(altura_janela / 2)):
-            start_y = y - int(altura_janela / 2)
-            end_y = max(y + int(altura_janela / 2), 1) + 1
-            for x in range(int(largura_janela / 2), int(largura - largura_janela / 2)):
-                start_x = x - int(largura_janela / 2)
-                end_x = max(x + int(largura_janela / 2), 1) + 1
+    cv2.medianBlur()
 
-                img_out[y][x][canal] = np.average(img[start_y:end_y, start_x:end_x][canal])
+    for canal in range(0, n_canais):
+        for y in range(altura_janela // 2, altura - altura_janela // 2):
+            start_y = y - altura_janela // 2
+            end_y = max(y + altura_janela // 2, 1) + 1
+            for x in range(largura_janela // 2, largura - largura_janela // 2):
+                start_x = x - largura_janela // 2
+                end_x = max(x + largura_janela // 2, 1) + 1
+
+                img_out[y][x][canal] = calcula_media(img[start_y:end_y, start_x:end_x, canal])
 
     return img_out
 
 def blur_separavel(img, altura_janela, largura_janela):
-    altura, largura, n_canais = img.shape
-
-    img_out = np.zeros(img.shape)
-
-    for canal in range(0, n_canais):
-        for y in range(0, altura):
-            soma = img[y][0:largura_janela][canal].sum()
-            for x in range(int(largura_janela / 2), int(largura - largura_janela / 2)):
-                if y < 0:
-                    soma = soma - img[y-1][x][canal] + img[y + altura_janela][x][canal]
-
-                img_out[y][x][canal] = soma / (altura_janela * largura_janela)
-        
-        for x in range(0, largura):
-            soma = img_out[0:altura_janela][x][canal].sum()
-            for y in range(int(altura_janela / 2), int(altura - altura_janela / 2)):
-                if x < 0:
-                    soma = soma - img_out[y-1][x][canal] + img_out[y + largura_janela][x][canal]
-
-                img_out[y][x][canal] = soma / (altura_janela * largura_janela)
-
-    return img_out
+    return blur_basico(blur_basico(img, altura_janela, 1), 1, largura_janela) # 1 linha :o
 
 def imagem_integral(img):
     altura, largura, n_canais = img.shape
     
-    img_out = np.zeros(img.shape)
+    integral = np.zeros(img.shape)
 
-    for c in range(0, n_canais):
+    for canal in range(0, n_canais):
         for y in range(0, altura):
-            img_out[y][0][c] = img[y][0][c]
+            integral[y][0][canal] = img[y][0][canal]
             for x in range(1, largura):
-                img_out[y][x][c] = img[y][x][c] + img_out[y][x-1][c]
+                integral[y][x][canal] = img[y][x][canal] + integral[y][x - 1][canal]
 
         for y in range(1, altura):
             for x in range(0, largura):
-                img_out[y][x][c] = img_out[y][x][c] + img_out[y-1][x][c]
+                integral[y][x][canal] = integral[y][x][canal] + integral[y - 1][x][canal]
+
+    print(integral[altura - 1][largura - 1])
+
+    return integral
+
+def blur_integral(img, altura_janela, largura_janela):
+    altura, largura, n_canais = img.shape
+
+    img_out = np.zeros(img.shape)
+    integral = imagem_integral(img)
+
+    for canal in range(0, n_canais):
+        for y in range(altura_janela // 2, altura - altura_janela // 2):
+            for x in range(largura_janela // 2, largura - largura_janela // 2):
+                topo_esquerda = integral[y - altura_janela // 2][x - largura_janela // 2][canal]
+                topo_direita = integral[y - altura_janela // 2][x + largura_janela // 2][canal]
+                baixo_esquerda = integral[y + altura_janela // 2][x - largura_janela // 2][canal]
+                baixo_direita = integral[y + altura_janela // 2][x + largura_janela // 2][canal]
+
+                img_out[y][x][canal] = (baixo_direita - topo_direita - baixo_esquerda + topo_esquerda) / (altura_janela * largura_janela)
 
     return img_out
 
@@ -85,7 +97,7 @@ def main():
     cv2.imwrite('01 - Original.bmp', img * 255)
 
     start_time = timeit.default_timer()
-    img = blur_separavel(img, ALTURA_JANELA, LARGURA_JANELA)
+    img = blur_integral(img, ALTURA_JANELA, LARGURA_JANELA)
     print('Tempo: %f' % (timeit.default_timer() - start_time))
 
     cv2.imshow('02 - out', img)
