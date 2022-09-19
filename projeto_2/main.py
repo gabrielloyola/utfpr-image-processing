@@ -30,8 +30,6 @@ def blur_basico(img, altura_janela, largura_janela):
 
     img_out = np.zeros(img.shape)
 
-    cv2.medianBlur()
-
     for canal in range(0, n_canais):
         for y in range(altura_janela // 2, altura - altura_janela // 2):
             start_y = y - altura_janela // 2
@@ -75,9 +73,9 @@ def blur_integral(img, altura_janela, largura_janela):
     for canal in range(0, n_canais):
         for y in range(altura_janela // 2, altura - altura_janela // 2):
             for x in range(largura_janela // 2, largura - largura_janela // 2):
-                topo_esquerda = integral[y - altura_janela // 2][x - largura_janela // 2][canal]
-                topo_direita = integral[y - altura_janela // 2][x + largura_janela // 2][canal]
-                baixo_esquerda = integral[y + altura_janela // 2][x - largura_janela // 2][canal]
+                topo_esquerda = integral[y - altura_janela // 2 - 1][x - largura_janela // 2 - 1][canal]
+                topo_direita = integral[y - altura_janela // 2 - 1][x + largura_janela // 2][canal]
+                baixo_esquerda = integral[y + altura_janela // 2][x - largura_janela // 2 - 1][canal]
                 baixo_direita = integral[y + altura_janela // 2][x + largura_janela // 2][canal]
 
                 img_out[y][x][canal] = (baixo_direita - topo_direita - baixo_esquerda + topo_esquerda) / (altura_janela * largura_janela)
@@ -118,26 +116,3 @@ if __name__ == '__main__':
 
 #===============================================================================
 
-
-"""
-X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   
-
-X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   
-
-X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   
-
-X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   
-
-X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   
-
-X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   
-
-X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   
-
-X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   
-
-X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   
-
-X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X   X 
-
-""" 
