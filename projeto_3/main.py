@@ -11,10 +11,10 @@ import cv2
 
 #===============================================================================
 
-THRESHOLD = .6
+THRESHOLD = .482
 SIGMA = 2
 INPUT_IMG = 'GT2.bmp'
-# INPUT_IMG = 'Wind Waker GC.bmp'
+#INPUT_IMG = 'Wind Waker GC.bmp'
 IMG_MULT = 0.9
 BLOOM_MULT = .05
 
@@ -23,20 +23,21 @@ def main():
     if img is None:
         print('Erro ao abrir a imagem.\n')
         sys.exit()
-
+    mask = cv2.imread(INPUT_IMG,cv2.IMREAD_GRAYSCALE)
+    mask = mask.reshape((mask.shape[0], mask.shape[1], 1))
     # Convertendo para float32.
     img = img.astype(np.float32) / 255
-
+    mask = mask.astype(np.float32) / 255
+    
     cv2.imshow('01 - Original', img)
     cv2.imwrite('01 - Original.bmp', img * 255)
-
-    img_limiar = np.where(img > THRESHOLD, img, 0)
+    
+    img_limiar = np.where(mask > THRESHOLD, img, 0)
 
     cv2.imshow('02 - limiar', img_limiar)
 
     k = 33
     bloom = np.zeros(img.shape)
-
     for sigma_mult in [1, 2, 4, 8, 16, 32, 64, 128]:
         sg = k * sigma_mult
         bloom += cv2.GaussianBlur(img_limiar, (k, k), sg)
