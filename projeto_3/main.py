@@ -35,6 +35,10 @@ def main():
     img_limiar = np.where(mask > THRESHOLD, img, 0)
 
     cv2.imshow('02 - limiar', img_limiar)
+    bloom_media = np.zeros(img.shape)
+    for i in range(0,4):
+      bloom_media += cv2.blur(img_limiar,(19,19))
+    cv2.imshow('BLOOM FILTRO DA MEDIA', bloom_media)  
 
     k = 33
     bloom = np.zeros(img.shape)
@@ -44,7 +48,7 @@ def main():
 
     cv2.imshow('BLOOOOM', bloom)
 
-    img = img * IMG_MULT + bloom * BLOOM_MULT
+    img = img * IMG_MULT + bloom_media * BLOOM_MULT
 
     cv2.imshow('OUT', img)
 
