@@ -13,8 +13,6 @@ import cv2
 
 #===============================================================================
 
-GABARITO = 150
-
 # *** Valores de ajuste ***
 # Blur
 KERNEL = 21
@@ -38,7 +36,9 @@ B2_SIGMA = 0
 MIN_SIZE = 16
 
 def main ():
-    img = cv2.imread("img/{}.bmp".format(GABARITO), cv2.IMREAD_GRAYSCALE)
+    gabarito = escolhe_gabarito()
+
+    img = cv2.imread("img/{}.bmp".format(gabarito), cv2.IMREAD_GRAYSCALE)
     if img is None:
         print('Erro abrindo a imagem.\n')
         sys.exit()
@@ -80,14 +80,37 @@ def main ():
     componentes_validos = [size for size in componentes if size > MIN_SIZE]
     n_componentes = len(componentes_validos) - 1
 
-    diff = abs(GABARITO - n_componentes)
-    erro = diff * 100 / GABARITO
+    diff = abs(gabarito - n_componentes)
+    erro = diff * 100 / gabarito
 
     print('%d componentes detectados.' % n_componentes)
-    print('erro: %.2f%%' % erro)
+    print('Erro: %.2f%%' % erro)
 
     cv2.waitKey()
     cv2.destroyAllWindows()
+
+def escolhe_gabarito():
+    while(True):
+        print('1 - 60')
+        print('2 - 82')
+        print('3 - 114')
+        print('4 - 150')
+        print('5 - 205')
+
+        escolha = str(input('Escolha uma imagem: '))
+
+        if escolha == '1':
+            return 60
+        elif escolha == '2':
+            return 82
+        elif escolha == '3':
+            return 114
+        elif escolha == '4':
+            return 150
+        elif escolha == '5':
+            return 205
+        else:
+            print('Opcao invalida.')
 
 if __name__ == '__main__':
     main()
