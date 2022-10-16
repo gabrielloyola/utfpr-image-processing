@@ -15,25 +15,20 @@ import cv2
 
 # *** Valores de ajuste ***
 # Blur
-KERNEL = 21
-SIGMA = 3
+KERNEL = 13
+SIGMA = 2.8
 
 # Limiarizacao
 T_KERNEL = 3
 T_SIGMA = 0
-
-# Fechamento
-F_KERNEL = 3
-
-# Abertura
-O_KERNEL = 5
 
 # Blur 2
 B2_KERNEL = 7
 B2_SIGMA = 0
 
 # Selecao
-MIN_SIZE = 16
+MIN_SIZE_FROM_MEAN = .5
+MAX_SIZE_FROM_MEDIAN = 1.2
 
 def main ():
     gabarito = escolhe_gabarito()
@@ -55,35 +50,32 @@ def main ():
     cv2.imshow('02 - Binarizada', binarizada * 255)
     cv2.imwrite('02 - Binarizada.png', binarizada * 255)
 
-    fechada = cv2.dilate(binarizada, (F_KERNEL, F_KERNEL))
-    fechada = cv2.erode(fechada, (F_KERNEL, F_KERNEL))
-
-    cv2.imshow('03 - fechada', fechada * 255)
-    cv2.imwrite('03 - Fechada.png', fechada * 255)
-
-    aberta = cv2.erode(fechada, (O_KERNEL, O_KERNEL))
-    aberta = cv2.dilate(aberta, (O_KERNEL, O_KERNEL))
-
-    cv2.imshow('04 - aberta', aberta * 255)
-    cv2.imwrite('04 - Aberta.png', aberta * 255)
-
-    borradona = cv2.GaussianBlur(aberta, (B2_KERNEL, B2_KERNEL), B2_SIGMA)
+    borradona = cv2.GaussianBlur(binarizada, (B2_KERNEL, B2_KERNEL), B2_SIGMA)
 
     cv2.imshow('05 - borradona', borradona * 255)
     cv2.imwrite('05 - Borradona.png', borradona * 255)
 
     # Componentes conexos
-    _ret, comp = cv2.connectedComponents(borradona, connectivity = 8)
-    _uniq, componentes = np.unique(comp, return_counts = True)
+    _n_components, labels, stats, _centroids = cv2.connectedComponentsWithStats(borradona, connectivity=8)
 
-    # Descartando os componentes pequenos
-    componentes_validos = [size for size in componentes if size > MIN_SIZE]
-    n_componentes = len(componentes_validos) - 1
+    valid_stats = graos_validos(stats)
 
-    diff = abs(gabarito - n_componentes)
+    # Mostra os objetos encontrados.
+    img_out = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    for stat in valid_stats:
+        top_left_yx = (stat[cv2.CC_STAT_LEFT], stat[cv2.CC_STAT_TOP])
+        bottom_right_yx = (stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH], stat[cv2.CC_STAT_TOP] + stat[cv2.CC_STAT_HEIGHT])
+        cv2.rectangle(img_out, top_left_yx, bottom_right_yx, (0,0,1))
+
+    cv2.imshow('06 - OUT', img_out)
+    cv2.imwrite('06 - OUT.png', img_out)
+
+    n_graos = len(valid_stats)
+    diff = abs(gabarito - n_graos)
     erro = diff * 100 / gabarito
 
-    print('%d componentes detectados.' % n_componentes)
+    print('Gabarito escolhido:', gabarito)
+    print('%d componentes detectados.' % n_graos)
     print('Erro: %.2f%%' % erro)
 
     cv2.waitKey()
@@ -111,6 +103,15 @@ def escolhe_gabarito():
             return 205
         else:
             print('Opcao invalida.')
+
+def graos_validos(stats):
+    # Desconsidera fundo
+    stats = stats[1:]
+
+    sizes = [stat[cv2.CC_STAT_AREA] for stat in stats]
+    mean_size = np.mean(sizes)
+
+    return [valid_stat for valid_stat in stats if valid_stat[cv2.CC_STAT_AREA] > mean_size * MIN_SIZE_FROM_MEAN]
 
 if __name__ == '__main__':
     main()
