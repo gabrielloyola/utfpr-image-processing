@@ -10,25 +10,29 @@
 import sys
 import numpy as np
 import cv2
+import math
 
 #===============================================================================
 
 # *** Valores de ajuste ***
+# Gamma
+GAMMA = 0.7
+
 # Blur
-KERNEL = 13
-SIGMA = 2.8
+KERNEL = 21
+SIGMA = 2.2
 
 # Limiarizacao
 T_KERNEL = 3
 T_SIGMA = 0
 
 # Blur 2
-B2_KERNEL = 7
-B2_SIGMA = 0
+B2_KERNEL = 9
 
 # Selecao
-MIN_SIZE_FROM_MEAN = .5
-MAX_SIZE_FROM_MEDIAN = 1.2
+MIN_SIZE_FROM_MEAN = .44
+MAX_SIZE_FROM_MEDIAN = 1.5
+MAX_SIZE_FROM_MIN = 3.8
 
 def main ():
     gabarito = escolhe_gabarito()
@@ -38,44 +42,57 @@ def main ():
         print('Erro abrindo a imagem.\n')
         sys.exit()
 
-    cv2.imshow('00 - Original', img)
-    cv2.imwrite('00 - Original.png', img)
+    img = gammaCorrection(img, GAMMA)
+
+    cv2.imshow('00 - GAMMA', img)
+    cv2.imwrite('00 - GAMMA.png', img)
+
+    img = img.reshape((img.shape[0], img.shape[1], 1))
+    img = img.astype(np.float32) / 255
+
+    # Mantém uma cópia colorida para desenhar a saída.
+    img_out = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
     borrada = cv2.GaussianBlur(img, (KERNEL, KERNEL), SIGMA)
 
     cv2.imshow('01 - Borrada', borrada)
-    cv2.imwrite('01 - Borrada.png', borrada)
+    cv2.imwrite('01 - Borrada.png', borrada * 255)
 
+    borrada = (borrada * 255).astype(np.uint8)
     binarizada = cv2.adaptiveThreshold(borrada, 1, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, T_KERNEL, T_SIGMA)
     cv2.imshow('02 - Binarizada', binarizada * 255)
     cv2.imwrite('02 - Binarizada.png', binarizada * 255)
 
-    borradona = cv2.GaussianBlur(binarizada, (B2_KERNEL, B2_KERNEL), B2_SIGMA)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+    fechada = cv2.morphologyEx(binarizada, cv2.MORPH_CLOSE, kernel)
 
-    cv2.imshow('05 - borradona', borradona * 255)
-    cv2.imwrite('05 - Borradona.png', borradona * 255)
+    cv2.imshow('03 - FECHADA', fechada * 255)
+    cv2.imwrite('03 - FECHADA.png', fechada * 255)
+
+    borrada2 = cv2.medianBlur(fechada, ksize=B2_KERNEL)
+
+    cv2.imshow('04 - Borrada (binarizada)', borrada2 * 255)
+    cv2.imwrite('04 - Borrada (binarizada).png', borrada2 * 255)
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+    aberta = cv2.morphologyEx(borrada2, cv2.MORPH_OPEN, kernel)
+
+    cv2.imshow('05 - ABERTA', aberta * 255)
+    cv2.imwrite('05 - ABERTA.png', aberta * 255)
 
     # Componentes conexos
-    _n_components, labels, stats, _centroids = cv2.connectedComponentsWithStats(borradona, connectivity=8)
+    _n_components, _labels, stats, _centroids = cv2.connectedComponentsWithStats(aberta, connectivity=4)
 
     valid_stats = graos_validos(stats)
 
-    # Mostra os objetos encontrados.
-    img_out = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    for stat in valid_stats:
-        top_left_yx = (stat[cv2.CC_STAT_LEFT], stat[cv2.CC_STAT_TOP])
-        bottom_right_yx = (stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH], stat[cv2.CC_STAT_TOP] + stat[cv2.CC_STAT_HEIGHT])
-        cv2.rectangle(img_out, top_left_yx, bottom_right_yx, (0,0,1))
+    mostra_componentes(valid_stats, img_out, '06 - OUT')
 
-    cv2.imshow('06 - OUT', img_out)
-    cv2.imwrite('06 - OUT.png', img_out)
-
-    n_graos = len(valid_stats)
+    n_graos = conta_grudados(valid_stats, img_out)
     diff = abs(gabarito - n_graos)
     erro = diff * 100 / gabarito
 
     print('Gabarito escolhido:', gabarito)
-    print('%d componentes detectados.' % n_graos)
+    print('%d grãos contados.' % n_graos)
     print('Erro: %.2f%%' % erro)
 
     cv2.waitKey()
@@ -104,6 +121,14 @@ def escolhe_gabarito():
         else:
             print('Opcao invalida.')
 
+def gammaCorrection(src, gamma):
+    invGamma = 1 / gamma
+
+    lookup_table = [((i / 255) ** invGamma) * 255 for i in range(256)]
+    lookup_table = np.array(lookup_table, np.uint8)
+
+    return cv2.LUT(src, lookup_table)
+
 def graos_validos(stats):
     # Desconsidera fundo
     stats = stats[1:]
@@ -112,6 +137,35 @@ def graos_validos(stats):
     mean_size = np.mean(sizes)
 
     return [valid_stat for valid_stat in stats if valid_stat[cv2.CC_STAT_AREA] > mean_size * MIN_SIZE_FROM_MEAN]
+
+def conta_grudados(valid_stats, img_out):
+    count = 0
+
+    sizes = [stat[cv2.CC_STAT_AREA] for stat in valid_stats]
+    min_size = np.min(sizes)
+    soltos = [blob for blob in valid_stats if blob[cv2.CC_STAT_AREA] < min_size * MAX_SIZE_FROM_MIN]
+    rice_sizes = [blob[cv2.CC_STAT_AREA] for blob in soltos]
+    print("Soltos: ", len(soltos))
+    median_size = np.median(rice_sizes)
+    print("Mean: ", median_size)
+
+    for blob in valid_stats:
+        if blob[cv2.CC_STAT_AREA] <= median_size * MAX_SIZE_FROM_MEDIAN:
+            count += 1
+        else:
+            count +=  math.ceil(blob[cv2.CC_STAT_AREA] / median_size)
+
+    return count
+
+def mostra_componentes(componentes, img_out, label):
+    for stat in componentes:
+        top_left_yx = (stat[cv2.CC_STAT_LEFT], stat[cv2.CC_STAT_TOP])
+        bottom_right_yx = (stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH], stat[cv2.CC_STAT_TOP] + stat[cv2.CC_STAT_HEIGHT])
+        cv2.rectangle(img_out, top_left_yx, bottom_right_yx, (0,0,1))
+
+    cv2.imshow(label, img_out)
+    cv2.imwrite("{}.png".format(label), img_out * 255)
+
 
 if __name__ == '__main__':
     main()
