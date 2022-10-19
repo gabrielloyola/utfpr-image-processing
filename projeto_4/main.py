@@ -1,7 +1,6 @@
 #===============================================================================
-# Exemplo: segmentação de uma imagem em escala de cinza.
+# Desafio de Segmentação
 #-------------------------------------------------------------------------------
-# Autor: Bogdan T. Nassu
 # Universidade Tecnológica Federal do Paraná
 # Alunos: Gabriel Leão Bernarde - 2194228
 #         Gabriel Loyola - 1558587
