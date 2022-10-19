@@ -19,8 +19,8 @@ import math
 GAMMA = 0.7
 
 # Blur
-KERNEL = 21
-SIGMA = 2.2
+KERNEL = 19
+SIGMA = 3.14
 
 # Limiarizacao
 T_KERNEL = 3
@@ -30,9 +30,8 @@ T_SIGMA = 0
 B2_KERNEL = 9
 
 # Selecao
-MIN_SIZE_FROM_MEAN = .44
-MAX_SIZE_FROM_MEDIAN = 1.5
-MAX_SIZE_FROM_MIN = 3.8
+MAX_SIZE_FROM_MEDIAN = 1.6
+MAX_SIZE_FROM_MEAN = 4
 
 def main ():
     gabarito = escolhe_gabarito()
@@ -74,7 +73,6 @@ def main ():
     cv2.imshow('04 - Borrada (binarizada)', borrada2 * 255)
     cv2.imwrite('04 - Borrada (binarizada).png', borrada2 * 255)
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
     aberta = cv2.morphologyEx(borrada2, cv2.MORPH_OPEN, kernel)
 
     cv2.imshow('05 - ABERTA', aberta * 255)
@@ -83,11 +81,12 @@ def main ():
     # Componentes conexos
     _n_components, _labels, stats, _centroids = cv2.connectedComponentsWithStats(aberta, connectivity=4)
 
-    valid_stats = graos_validos(stats)
+    # Desconsidera fundo
+    valid_stats = stats[1:]
 
     mostra_componentes(valid_stats, img_out, '06 - OUT')
 
-    n_graos = conta_grudados(valid_stats, img_out)
+    n_graos = conta_grudados(valid_stats)
     diff = abs(gabarito - n_graos)
     erro = diff * 100 / gabarito
 
@@ -129,21 +128,12 @@ def gammaCorrection(src, gamma):
 
     return cv2.LUT(src, lookup_table)
 
-def graos_validos(stats):
-    # Desconsidera fundo
-    stats = stats[1:]
-
-    sizes = [stat[cv2.CC_STAT_AREA] for stat in stats]
-    mean_size = np.mean(sizes)
-
-    return [valid_stat for valid_stat in stats if valid_stat[cv2.CC_STAT_AREA] > mean_size * MIN_SIZE_FROM_MEAN]
-
-def conta_grudados(valid_stats, img_out):
+def conta_grudados(valid_stats):
     count = 0
 
     sizes = [stat[cv2.CC_STAT_AREA] for stat in valid_stats]
-    min_size = np.min(sizes)
-    soltos = [blob for blob in valid_stats if blob[cv2.CC_STAT_AREA] < min_size * MAX_SIZE_FROM_MIN]
+    sizes_mean = np.mean(sizes)
+    soltos = [blob for blob in valid_stats if blob[cv2.CC_STAT_AREA] < sizes_mean * MAX_SIZE_FROM_MEAN]
     rice_sizes = [blob[cv2.CC_STAT_AREA] for blob in soltos]
     print("Soltos: ", len(soltos))
     median_size = np.median(rice_sizes)
