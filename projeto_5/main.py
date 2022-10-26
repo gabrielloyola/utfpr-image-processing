@@ -27,18 +27,10 @@ def main ():
 
     cv2.imshow('Img', img)
 
-    altura, largura, n_canais = img.shape
+    fundo = cv2.imread('xpwallpaper.webp')
+    fundo = fundo.astype(np.float32) / 255
 
-    mascara_verde, img = cria_mascara_verde(img, altura, largura)
-
-    cv2.imshow('Sem verde', img)
-
-    background = cv2.imread('xpwallpaper.webp')
-    background = background.astype(np.float32) / 255
-
-    blended =  + cv2.resize(background, (largura, altura))
-
-    cv2.imshow('OUT', blended)
+    cv2.imshow('OUT', chroma_key(img, fundo))
 
     cv2.waitKey()
     cv2.destroyAllWindows()
@@ -51,22 +43,24 @@ def escolhe_imagem():
 
         print('Opcao invalida.')
 
-def cria_mascara_verde(img, altura, largura):
-    mask = np.zeros((altura, largura))
+def chroma_key(img, fundo):
+    blended = np.zeros(img.shape)
     sem_verde = img
+
+    altura, largura, _n_camadas = img.shape
+    fundo_resized = cv2.resize(fundo, (largura, altura))
 
     for y in range(altura):
         for x in range(largura):
             grau_verde = calcula_verdicidade(img[y][x])
-            mask[y][x] = grau_verde
             sem_verde[y][x][1] -= grau_verde
 
-    cv2.imshow('Mask', mask)
+            blended[y][x] = fundo_resized[y][x] * grau_verde + sem_verde[y][x]
 
-    return mask, aux
+    return blended
 
 def calcula_verdicidade(pixel):
-    return pixel[1] - max(pixel[0], pixel[2])
+    return max(pixel[1] - max(pixel[0], pixel[2]), 0)
 
 if __name__ == '__main__':
     main()
