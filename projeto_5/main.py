@@ -48,14 +48,31 @@ def chroma_key(img, fundo):
     sem_verde = img
 
     altura, largura, _n_camadas = img.shape
-    fundo_resized = cv2.resize(fundo, (largura, altura))
+    mascara_verde = np.zeros((altura, largura))
+    # Deixando o fundo do tamanho da imagem para não ter problemas de acesso inválido
+    fundo = cv2.resize(fundo, (largura, altura))
 
     for y in range(altura):
         for x in range(largura):
             grau_verde = calcula_verdicidade(img[y][x])
+            mascara_verde[y][x] = grau_verde
             sem_verde[y][x][1] -= grau_verde
 
-            blended[y][x] = fundo_resized[y][x] * grau_verde + sem_verde[y][x]
+    mascara_verde_positiva = mascara_verde[mascara_verde > 0]
+    media_verde = np.mean(mascara_verde_positiva)
+    desvio = np.std(mascara_verde_positiva)
+
+
+    # TODO: Fazer o flood fill pra decidir melhor as bordas.
+
+    for y in range(altura):
+        for x in range(largura):
+            if mascara_verde[y][x] < (media_verde - desvio):
+                blended[y][x] = sem_verde[y][x]
+            else:
+                blended[y][x] = fundo[y][x]
+
+    cv2.imshow('Mascara Verde', mascara_verde)
 
     return blended
 
