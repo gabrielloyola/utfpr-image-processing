@@ -27,9 +27,12 @@ def main ():
 
     cv2.imshow('Img', img)
 
-    fundo = cv2.imread('xpwallpaper.webp')
+    # fundo = np.ones(img.shape)
+
+    fundo = cv2.imread("bg.jpg".format(imagem))
     fundo = fundo.astype(np.float32) / 255
 
+    cv2.imshow('fundo', fundo)
     cv2.imshow('OUT', chroma_key(img, fundo))
 
     cv2.waitKey()
@@ -48,7 +51,7 @@ def chroma_key(img, fundo):
     sem_verde = img
 
     altura, largura, _n_camadas = img.shape
-    mascara_verde = np.zeros((altura, largura))
+    mascara_verde = np.zeros((altura, largura)).astype(np.float32)
     # Deixando o fundo do tamanho da imagem para não ter problemas de acesso inválido
     fundo = cv2.resize(fundo, (largura, altura))
 
@@ -62,15 +65,15 @@ def chroma_key(img, fundo):
     media_verde = np.mean(mascara_verde_positiva)
     desvio = np.std(mascara_verde_positiva)
 
-
-    # TODO: Fazer o flood fill pra decidir melhor as bordas.
+    mascara_verde = cv2.bilateralFilter(mascara_verde, 5, 0.6, 50)
+    # mascara_verde = cv2.GaussianBlur(mascara_verde, (5, 5), 1)
 
     for y in range(altura):
         for x in range(largura):
-            if mascara_verde[y][x] < (media_verde - desvio):
-                blended[y][x] = sem_verde[y][x]
+            if mascara_verde[y][x] <= (media_verde - desvio):
+                blended[y][x] = mascara_verde[y][x] * fundo[y][x] + sem_verde[y][x]
             else:
-                blended[y][x] = fundo[y][x]
+                blended[y][x] = fundo[y][x] + sem_verde[y][x]
 
     cv2.imshow('Mascara Verde', mascara_verde)
 
